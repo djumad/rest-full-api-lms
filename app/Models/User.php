@@ -10,7 +10,7 @@ class User extends Model implements Authenticatable
     protected $guarded = [];
 
     public function kelas(){
-        return $this->belongsTo(Kelas::class);
+        return $this->belongsToMany(Kelas::class , 'kelas_user');
     }
 
     public function getAuthIdentifierName(){

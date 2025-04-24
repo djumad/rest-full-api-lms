@@ -19,8 +19,6 @@ return new class extends Migration
             $table->string("foto" , 100)->nullable();
             $table->enum("role" , ['siswa' , 'admin' , 'guru'])->default("siswa");
             $table->string("password");
-            $table->unsignedBigInteger("kelas_id")->nullable();
-            $table->foreign("kelas_id")->on("kelas")->references("id");
             $table->string("token")->nullable();
             $table->timestamps();
         });
