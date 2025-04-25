@@ -2,32 +2,34 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Kelas;
 use App\Models\Tugas;
+use App\Models\Kelas;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class GuruController extends Controller
 {
     /**
-     * Tampilkan semua tugas yang dibuat oleh guru yang sedang login.
+     * Menampilkan semua tugas yang diberikan oleh guru
      */
     public function getTugas()
     {
-        $user = Auth::user();
+        $guru = Auth::user();
 
-        $tugas = Tugas::with('kelas')
-            ->where('guru_id', $user->id)
-            ->get();
+        // Ambil tugas-tugas yang dimiliki guru ini, serta kelas yang berhubungan
+        $tugas = Tugas::where('guru_id', $guru->id)
+                      ->with('kelas') // Memuat relasi kelas
+                      ->get();
 
         return response()->json([
-            'message' => 'Daftar tugas guru',
+            'message' => 'Berhasil mendapatkan tugas',
             'data' => $tugas
         ]);
     }
 
     /**
-     * Buat tugas baru dan kaitkan ke kelas berdasarkan nama.
+     * Membuat tugas baru untuk guru
      */
     public function createTugas(Request $request)
     {
@@ -41,12 +43,18 @@ class GuruController extends Controller
 
         $guru = Auth::user();
 
-        $kelasIds = Kelas::whereIn('nama', $request->kelas_nama)->pluck('id');
+        // Ambil kelas-kelas yang diajarkan oleh guru
+        $kelasIds = $guru->kelas->pluck('id')->toArray(); // Kelas yang diajarkan oleh guru
 
-        if ($kelasIds->isEmpty()) {
-            return response()->json(['message' => 'Kelas tidak ditemukan'], 404);
+        // Ambil ID kelas yang dipilih dari request
+        $selectedKelasIds = Kelas::whereIn('nama', $request->kelas_nama)->pluck('id');
+
+        // Validasi apakah kelas yang dipilih berhubungan dengan kelas yang diajarkan oleh guru
+        if ($selectedKelasIds->diff($kelasIds)->isNotEmpty()) {
+            return response()->json(['message' => 'Guru hanya dapat membuat tugas untuk kelas yang diajarkan'], 403);
         }
 
+        // Jika validasi kelas berhasil, buat tugas
         $tugas = Tugas::create([
             'guru_id' => $guru->id,
             'judul' => $request->judul,
@@ -54,11 +62,12 @@ class GuruController extends Controller
             'deadline' => $request->deadline
         ]);
 
-        $tugas->kelas()->sync($kelasIds);
+        // Sinkronisasi tugas dengan kelas yang dipilih
+        $tugas->kelas()->sync($selectedKelasIds);
 
         return response()->json([
             'message' => 'Tugas berhasil dibuat',
-            'data' => $tugas->load('kelas')
+            'data' => $tugas->load('kelas') // Mengembalikan tugas beserta relasi kelas
         ]);
     }
 
@@ -82,16 +91,18 @@ class GuruController extends Controller
             return response()->json(['message' => 'Tugas tidak ditemukan atau bukan milik Anda'], 404);
         }
 
+        // Perbarui tugas berdasarkan input dari request
         $tugas->update($request->only(['judul', 'deskripsi', 'deadline']));
 
+        // Jika kelas diubah, sinkronisasi ulang kelas
         if ($request->has('kelas_nama')) {
             $kelasIds = Kelas::whereIn('nama', $request->kelas_nama)->pluck('id');
-            $tugas->kelas()->sync($kelasIds);
+            $tugas->kelas()->sync($kelasIds); // Sinkronisasi kelas
         }
 
         return response()->json([
             'message' => 'Tugas berhasil diperbarui',
-            'data' => $tugas->load('kelas')
+            'data' => $tugas->load('kelas') // Kembalikan tugas beserta relasi kelas
         ]);
     }
 
