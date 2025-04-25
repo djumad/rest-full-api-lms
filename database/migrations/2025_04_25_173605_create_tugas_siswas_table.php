@@ -15,7 +15,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('tugas_id')->constrained()->onDelete('cascade');
             $table->foreignId('siswa_id')->constrained('users')->onDelete('cascade');
-            $table->json('file_unggahan')->nullable();
+            $table->string('file_unggahan')->nullable();
             $table->timestamps();
         });
     }
