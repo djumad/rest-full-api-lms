@@ -44,16 +44,18 @@ class UserController extends Controller
     }
 
     public function getUser(){
-        $user = Auth::user();
-
+        $user = Auth::user()->load('kelas'); // eager load kelas
+    
         return response()->json([
             'message' => 'success',
             'data' => [
                 'email' => $user->email,
                 'nama' => $user->nama,
                 'role' => $user->role,
-                'token' => $user->token
+                'token' => $user->token,
+                'kelas' => $user->kelas->pluck('nama') // hanya ambil nama-nya
             ]
-        ] , 200);
+        ], 200);
     }
+    
 }

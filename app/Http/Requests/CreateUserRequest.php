@@ -28,6 +28,8 @@ class CreateUserRequest extends FormRequest
             'email' => ['min:10' , 'max:100' , 'required'],
             'role' => ['min:1' , 'max:100'],
             'password' => ['min:5' , 'max:100' , 'required'],
+            'kelas' => ['array' , 'required'],
+            'kelas.*' => ['string']
         ];
     }
 
