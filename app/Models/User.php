@@ -11,7 +11,7 @@ class User extends Model implements Authenticatable
 
     public function kelas()
     {
-        return $this->belongsToMany(Kelas::class, 'kelas_user');
+        return $this->belongsToMany(Kelas::class, 'kelas_user' ,  'user_id', 'kelas_id');
     }
 
     // Authenticatable implementation

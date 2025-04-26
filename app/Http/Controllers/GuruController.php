@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Tugas;
 use App\Models\Kelas;
+use App\Models\TugasSiswa;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,8 +20,8 @@ class GuruController extends Controller
 
         // Ambil tugas-tugas yang dimiliki guru ini, serta kelas yang berhubungan
         $tugas = Tugas::where('guru_id', $guru->id)
-                      ->with('kelas') // Memuat relasi kelas
-                      ->get();
+            ->with('kelas') // Memuat relasi kelas
+            ->get();
 
         return response()->json([
             'message' => 'Berhasil mendapatkan tugas',
@@ -122,6 +123,94 @@ class GuruController extends Controller
 
         return response()->json([
             'message' => 'Tugas berhasil dihapus'
+        ]);
+    }
+
+    public function lihatPengumpulanTugas($tugasId)
+    {
+        $guru = Auth::user();
+
+        // Pastikan tugas ini milik guru login
+        $tugas = Tugas::where('id', $tugasId)
+            ->where('guru_id', $guru->id)
+            ->with('kelas') // load kelas
+            ->first();
+
+        if (!$tugas) {
+            return response()->json(['message' => 'Tugas tidak ditemukan atau Anda tidak memiliki akses'], 404);
+        }
+
+        // Ambil semua pengumpulan siswa untuk tugas ini
+        $pengumpulan = TugasSiswa::where('tugas_id', $tugasId)
+            ->with(['siswa.kelas']) // relasi siswa dan kelas
+            ->get()
+            ->groupBy(function ($item) {
+                // Group by nama kelas
+                return optional($item->siswa->kelas)->nama ?? 'Tidak Ada Kelas';
+            });
+
+        return response()->json([
+            'message' => 'Berhasil mendapatkan daftar pengumpulan tugas',
+            'tugas' => $tugas,
+            'pengumpulan_per_kelas' => $pengumpulan
+        ]);
+    }
+    public function lihatPengumpulanPerTugas($id)
+    {
+        $guru = Auth::user();
+
+        // Cari tugas berdasarkan id dan pastikan guru_id-nya sesuai yang login
+        $tugas = Tugas::where('id', $id)->where('guru_id', $guru->id)->first();
+
+        if (!$tugas) {
+            return response()->json([
+                'message' => 'Tugas tidak ditemukan atau Anda tidak berhak melihat tugas ini.'
+            ], 404);
+        }
+
+        // Ambil semua pengumpulan siswa untuk tugas tersebut
+        $pengumpulan = TugasSiswa::where('tugas_id', $id)
+            ->with(['siswa.kelas', 'tugas.kelas']) // relasi siswa dan tugas
+            ->get();
+
+        return response()->json([
+            'message' => 'Berhasil mendapatkan pengumpulan tugas siswa',
+            'data' => $pengumpulan
+        ]);
+    }
+
+    public function beriNilaiTugas(Request $request, $id)
+    {
+        $guru = Auth::user();
+
+        // Validasi input
+        $request->validate([
+            'nilai' => 'required|integer|min:0|max:100',
+        ]);
+
+        // Cari tugas siswa
+        $tugasSiswa = TugasSiswa::with('tugas')->find($id);
+
+        if (!$tugasSiswa) {
+            return response()->json([
+                'message' => 'Pengumpulan tugas tidak ditemukan.'
+            ], 404);
+        }
+
+        // Pastikan tugas tersebut memang milik guru ini
+        if ($tugasSiswa->tugas->guru_id !== $guru->id) {
+            return response()->json([
+                'message' => 'Anda tidak berhak memberikan nilai untuk tugas ini.'
+            ], 403);
+        }
+
+        // Update nilai
+        $tugasSiswa->nilai = $request->nilai;
+        $tugasSiswa->save();
+
+        return response()->json([
+            'message' => 'Nilai berhasil diberikan.',
+            'data' => $tugasSiswa
         ]);
     }
 }

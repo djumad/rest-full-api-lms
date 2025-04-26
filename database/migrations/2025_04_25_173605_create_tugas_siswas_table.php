@@ -18,7 +18,9 @@ return new class extends Migration
             $table->string('file_unggahan')->nullable();
             $table->timestamps();
         });
+        
     }
+    
 
     /**
      * Reverse the migrations.

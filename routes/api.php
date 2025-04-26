@@ -24,6 +24,8 @@ Route::middleware(UserMeedleware::class)->group(function(){
 
     Route::middleware(GuruMiddleware::class)->group(function(){
         Route::get("/users/guru/tugas", [GuruController::class, 'getTugas']);
+        Route::get("/users/guru/tugas/{tugasId}/pengumpulan", [GuruController::class, 'lihatPengumpulanPerTugas']);
+        Route::post('/users/guru/tugas/pengumpulan/{id}/nilai', [GuruController::class, 'beriNilaiTugas']);
         Route::post("/users/guru/tugas", [GuruController::class, 'createTugas']);
         Route::put("/users/guru/tugas/{id}", [GuruController::class, 'updateTugas']);
         Route::delete("/users/guru/tugas/{id}", [GuruController::class, 'deleteTugas']);
